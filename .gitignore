@@ -1,0 +1,4 @@
+creds/
+node_modules/
+*.jpg
+.env
