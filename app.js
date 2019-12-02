@@ -13,7 +13,7 @@ app.use(bodyParser.json());
 app.use('/', express.static('public'));
 
 // Use routes
-app.use('/', require('./routes.js'));
+//app.use('/', require('./routes.js'));
 
 // Define server
 var server = require('http').Server(app);
@@ -21,6 +21,9 @@ var server = require('http').Server(app);
 // Setup motion sensor
 var gpio = require('onoff').Gpio;
 var pir = new gpio(4, 'in', 'both');
+
+// Init servo
+controller.initializeServo();
 
 // Watch for motion
 pir.watch(async (err, value) => {
