@@ -30,8 +30,8 @@ const myCamera = new PiCamera({
 // Configure servo
 const s_gpio = require('pigpio').Gpio;
 const motor = new s_gpio(3, {mode: s_gpio.OUTPUT});
-const CLOSED_PW = 850;
-const OPEN_PW = 1500;
+const CLOSED_PW = 1500;
+const OPEN_PW = 850;
 let increment = 50;
 let current_pw;
 
@@ -85,36 +85,40 @@ module.exports = {
 async function sendPicture() {
 	var bitmap = fs.readFileSync('latest.jpg');
 	var base64string = new Buffer(bitmap).toString('base64');
-	//var uploader = require('base64-image-upload');
-	var car = undefined;
+	var cars = undefined;
 	if (process.env.OPEN_ALPR) {
 		request.post({url: url, 
 			body: JSON.stringify(base64string)}, 
 			async (err, httpResponse, body) => {
 				if (err) {
 					console.log('upload failed:', err);
+					processing_image = false;
 					return;
 				}
 				if (!body) {
+					processing_image = false;
 					return;
 				}
 				console.log('Upload complete!');
 				const results = JSON.parse(body).results;
-				if (results && results.length > 0) {
-					// Take first result (highest confidence)
-					car = {"plate": results[0]['plate']}
-					try {
-						car['color'] = results[0]['vehicle']['color'][0]['name'];
-						car['make'] = results[0]['vehicle']['make'][0]['name'];
-						car['model'] = results[0]['vehicle']['make_model'][0]['name'];
-					} catch (error) {
-						console.log("Error parsing OpenALPR", error.message)
-					}
-					console.log("Got car object: ", car);
+console.log("results:", results);
+				if (results && results.length > 0 && results[0]['candidates'].length > 0) {
+					cars = [];
+					results[0]['candidates'].forEach(car => {
+						if (car['confidence'] > 75) {
+							console.log(car);
+							var carEntry = {};
+							carEntry['plate'] = car['plate'];
+							carEntry['color'] = results[0]['vehicle']['color'][0]['name'];
+							carEntry['make'] = results[0]['vehicle']['make'][0]['name'];
+							carEntry['model'] = results[0]['vehicle']['make_model'][0]['name'];
+							cars.push(carEntry);
+						}
+					});
 				} else {
 					console.log('No results from OpenALPR');
 				}
-				await processResults(car);
+				await processResults(cars);
 		});
 	} else {
 		console.log('OpenALPR disabled, aborting.');
@@ -122,14 +126,14 @@ async function sendPicture() {
 	}
 }
 
-async function processResults(car) {
-	if (car === undefined) {
+async function processResults(cars) {
+	if (cars === undefined || cars.length == 0) {
 		console.log('No car detected');
 		processing_image = false;
 		return;
 	}
 	var known_cars_array = [];
-	console.log('Plate:', car['plate']);
+	console.log('Possibilities:', cars);
 	var ref = database.ref("Member");
 	await ref.once("value", function(snapshot) {
 		snapshot.forEach(function(data) {
@@ -139,7 +143,9 @@ async function processResults(car) {
 		console.log("ERROR: Firebase" + errorObject.code);
 	});
 	var found = known_cars_array.find((knownCar) => {
-		return knownCar['plate'] === car['plate'];
+		return cars.find((carGuess) => {
+			return knownCar['plate'] === carGuess['plate'];
+		});
 	});
 	if (found) {
 		console.log('Plate match! ' + JSON.stringify(found));
@@ -156,17 +162,17 @@ async function processResults(car) {
 			console.log("ERROR: Firebase" + errorObject.code);
 		});
 		var alreadyUploaded = pending_cars.find((pendingCar) => {
-			return pendingCar['plate'] === car['plate'];
+			return pendingCar['plate'] === cars[0]['plate'];
 		});
 		if (!alreadyUploaded) {
 			try {
-				bucket.upload('latest.jpg', { destination: car['plate'] });
+				bucket.upload('latest.jpg', { destination: cars[0]['plate'] });
 			} catch (error) {
 				console.log('Failed image upload, aborting.');
 				processing_image = false;
 				return;
 			}
-			unknown_ref.push(car);
+			unknown_ref.push(cars[0]);
 			console.log('Uploaded unrecognized car info!');
 		} else {
 			console.log('Unrecognized car already uploaded.');
@@ -191,9 +197,9 @@ async function tryOpenDoor() {
 		console.log("Open!");
 	}
 	function moveServo() {
-		if (current_pw <= OPEN_PW) {
+		if (current_pw >= OPEN_PW) {
 			motor.servoWrite(current_pw);
-			current_pw += increment;
+			current_pw -= increment;
 		} else {
 			current_pw = OPEN_PW;
 			stopFunction();
@@ -221,9 +227,9 @@ async function closeDoor() {
 		processing_image = false;
 	}
 	function moveServo() {
-		if (current_pw >= CLOSED_PW) {
+		if (current_pw <= CLOSED_PW) {
 			motor.servoWrite(current_pw);
-			current_pw -= increment;
+			current_pw += increment;
 		} else {
 			current_pw = CLOSED_PW;
 			stopFunction();
