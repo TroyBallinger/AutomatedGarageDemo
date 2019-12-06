@@ -101,7 +101,6 @@ async function sendPicture() {
 				}
 				console.log('Upload complete!');
 				const results = JSON.parse(body).results;
-console.log("results:", results);
 				if (results && results.length > 0 && results[0]['candidates'].length > 0) {
 					cars = [];
 					results[0]['candidates'].forEach(car => {
