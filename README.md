@@ -6,6 +6,8 @@ The door will then open automatically for trusted cars, remain closed for untrus
 
 This server was originally designed to support HTTP requests directly, but due to time constraints and security concerns, I refactored the code to have the server only communicate between OpenALPR's API and Firebase with no possible input from the outside world except when the camera is triggered.
 
+Replicating my setup is largely infeasible, however, this code will be posted as a reference for anyone attempting something similar with a modified version of my code.
+
 ## Prerequisites
 This server is intended to run on a Raspberry Pi and depends on PiGPIO, Node, and npm to run properly.
 ### Step 1:
