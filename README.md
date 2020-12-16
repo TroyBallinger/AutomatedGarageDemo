@@ -9,7 +9,7 @@ This server was originally designed to support HTTP requests directly, but due t
 ## Prerequisites
 This server is intended to run on a Raspberry Pi and depends on PiGPIO, Node, and npm to run properly.
 ### Step 1:
-Install pigpio
+Install pigpio (Note: This will not work on most common, non-Pi Linux distros)
 
 `sudo apt-get update && sudo apt-get install pigpio`
 
