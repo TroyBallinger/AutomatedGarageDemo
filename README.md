@@ -1,6 +1,6 @@
 # LicensePlateServer
 
-A simple Node server to listen for activity on a Raspberry Pi's camera. If activity is detected, a picture will be snapped and sent to OpenALPR for analysis.
+A simple Node server to listen for activity on a Raspberry Pi using a motion detector. If activity is detected, the camera will snap a picture and send it to OpenALPR's API for analysis.
 Then, if the image can be recognized as a car with a readable license plate, the probable plate ID is checked against a Firebase database of known, trusted cars input by the user via the accompanying Android app (not in this codebase).
 The door will then open automatically for trusted cars, remain closed for untrusted cars, and prompt the user to deny or accept an unrecognized car upon its arrival in front of the camera. If the user accepts via the Android app, the door will open.
 
