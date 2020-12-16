@@ -1,26 +1,12 @@
 // Bring in env variables
 require('dotenv').config();
 
-var express = require('express');
-var bodyParser = require('body-parser');
-var app = express();
-var controller = require('./controller.js');
-
-// Enables us to parse JSON
-app.use(bodyParser.json());
-
-// Use public html webpage (for testing)
-app.use('/', express.static('public'));
-
-// Use routes
-//app.use('/', require('./routes.js'));
-
-// Define server
-var server = require('http').Server(app);
+const process = require('process');
+const controller = require('./controller.js');
 
 // Setup motion sensor
-var gpio = require('onoff').Gpio;
-var pir = new gpio(4, 'in', 'both');
+const gpio = require('onoff').Gpio;
+const pir = new gpio(4, 'in', 'both');
 
 // Init servo
 controller.initializeServo();
@@ -29,17 +15,16 @@ controller.initializeServo();
 pir.watch(async (err, value) => {
 	if (err) {
 		console.log("ERROR: Motion detector");
-	} else if (value == 1) { // Motion detected
+	} else if (value == 1) { 
+		// Motion detected
 		await controller.sendPicToCloud();
 	} else {
 		// No motion
 	}
 });
 
-var port = 8000;
+console.log(`LicensePlateServer started successfully.`);
 
-// Listen on port
-server.listen(port);
-
-// Sanity check
-console.log('Server running on port ' + port);
+process.on('exit', (code) => {
+	console.log(`LicensePlateServer exited with code ${code}.`);
+});

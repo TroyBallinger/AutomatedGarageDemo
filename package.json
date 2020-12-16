@@ -1,0 +1,36 @@
+{
+  "name": "licenseplateserver",
+  "version": "1.0.0",
+  "description": "Intended for use on a Raspberry Pi, this Node server will control a servo as a proof of concept for a garage door opener using AI car recognition",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "stop": "killall node 2>/dev/null &"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TroyBallinger/LicensePlateServer.git"
+  },
+  "keywords": [
+    "raspberrypi",
+    "pi",
+    "ai",
+    "garage",
+    "licenseplate"
+  ],
+  "author": "Troy Ballinger",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TroyBallinger/LicensePlateServer/issues"
+  },
+  "homepage": "https://github.com/TroyBallinger/LicensePlateServer#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "firebase-admin": "^9.4.2",
+    "fs": "0.0.1-security",
+    "onoff": "^6.0.1",
+    "pi-camera": "^1.5.0",
+    "pigpio": "^3.2.4",
+    "request": "^2.88.2"
+  }
+}
