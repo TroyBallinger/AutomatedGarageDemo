@@ -1,15 +1,16 @@
 // Bring in env variables
 require("dotenv").config();
 
-const process = require("process");
-const controller = require("./controller.js");
+import process from "process";
+import { Gpio } from "onoff";
+
+import { initializeServo, sendPicToCloud } from "./controller.js";
 
 // Setup motion sensor
-const gpio = require("onoff").Gpio;
-const pir = new gpio(4, "in", "both");
+const pir = new Gpio(4, "in", "both");
 
 // Init servo
-controller.initializeServo();
+initializeServo();
 
 // Watch for motion
 pir.watch(async (err, value) => {
@@ -17,7 +18,7 @@ pir.watch(async (err, value) => {
     console.log("ERROR: Motion detector");
   } else if (value == 1) {
     // Motion detected
-    await controller.sendPicToCloud();
+    await sendPicToCloud();
   } else {
     // No motion
   }
