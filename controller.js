@@ -1,9 +1,11 @@
-const axios = require("axios");
-const admin = require("firebase-admin");
-const fs = require("fs");
-const PiCamera = require("pi-camera");
-const s_gpio = require("pigpio").Gpio;
+import axios from "axios";
+import admin from "firebase-admin";
+import fs from "fs";
+import PiCamera from "pi-camera";
+import { Gpio } from "pigpio";
 
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 const secrets = require("./creds/secrets.json");
 
 if (
@@ -12,8 +14,8 @@ if (
   !secrets.storage_bucket ||
   !secrets.openalpr_key
 ) {
-  console.err("Missing secrets.");
-  return;
+  console.error("Missing secrets.");
+  process.exit();
 }
 
 // Firebase init
@@ -25,11 +27,10 @@ admin.initializeApp({
 
 // Time to keep the door open in seconds
 const SECONDS_OPEN = 10;
-
-const MIN_CAR_CONFIDENCE = 75;
+const MIN_OPENALPR_CAR_CONFIDENCE = 75;
 
 // Configure servo
-const motor = new s_gpio(3, { mode: s_gpio.OUTPUT });
+const motor = new Gpio(3, { mode: Gpio.OUTPUT });
 const CLOSED_PW = 1500;
 const OPEN_PW = 850;
 let increment = 50;
@@ -68,7 +69,7 @@ ref.on(
     tryOpenDoor();
   },
   (error) => {
-    console.err("ERROR: Firebase", error.code);
+    console.error("ERROR: Firebase", error.code);
   }
 );
 
@@ -81,23 +82,25 @@ const url = `https://api.openalpr.com/v2/recognize_bytes?recognize_vehicle=1&cou
 const sendPicture = async () => {
   // Convert image to base64 for http request
   const bitmap = fs.readFileSync("latest.jpg");
-  const base64string = new Buffer(bitmap).toString("base64");
+  const base64string = Buffer.from(bitmap).toString("base64");
   let cars = undefined;
 
   if (!process.env.OPEN_ALPR) {
-    console.err("OpenALPR disabled.");
+    console.error("OpenALPR disabled.");
+
     processing_image = false;
     return;
   }
 
   axios
     .post(url, JSON.stringify(base64string))
-    .then((response) => {
+    .then(async (response) => {
       if (!body) {
         processing_image = false;
         return;
       }
       console.log("Upload complete!");
+
       const results = JSON.parse(response.body).results;
       // If OpenALPR has potential matches
       if (
@@ -106,9 +109,11 @@ const sendPicture = async () => {
         results[0]["candidates"].length > 0
       ) {
         cars = [];
+
         results[0]["candidates"].forEach((car) => {
-          if (car["confidence"] > MIN_CAR_CONFIDENCE) {
+          if (car["confidence"] >= MIN_OPENALPR_CAR_CONFIDENCE) {
             console.log("Adding:", car);
+
             let carEntry = {};
             carEntry["plate"] = car["plate"];
             carEntry["color"] = results[0]["vehicle"]["color"][0]["name"];
@@ -120,10 +125,11 @@ const sendPicture = async () => {
       } else {
         console.log("No results from OpenALPR");
       }
+
       await processResults(cars);
     })
     .catch((err) => {
-      console.err("Upload failed:", err);
+      console.error("Upload failed:", err);
       processing_image = false;
     });
 };
@@ -135,12 +141,14 @@ const sendPicture = async () => {
 const processResults = async (cars) => {
   if (!cars || cars.length === 0) {
     console.log("No car detected");
+
     processing_image = false;
     return;
   }
+  console.log("Possibilities:", cars);
 
   let known_cars_array = [];
-  console.log("Possibilities:", cars);
+
   const ref = database.ref("Member");
 
   // Pull all recognized cars from Firebase
@@ -152,7 +160,7 @@ const processResults = async (cars) => {
       });
     },
     (errorObject) => {
-      console.err("ERROR: Firebase" + errorObject.code);
+      console.error("ERROR: Firebase" + errorObject.code);
     }
   );
 
@@ -164,6 +172,7 @@ const processResults = async (cars) => {
   // Check for car match
   if (found) {
     console.log("Plate match:", JSON.stringify(found));
+
     await tryOpenDoor();
   } else {
     console.log("No match!");
@@ -180,7 +189,7 @@ const processResults = async (cars) => {
         });
       },
       (errorObject) => {
-        console.err("ERROR: Firebase", errorObject.code);
+        console.error("ERROR: Firebase", errorObject.code);
       }
     );
 
@@ -193,7 +202,8 @@ const processResults = async (cars) => {
       try {
         bucket.upload("latest.jpg", { destination: cars[0]["plate"] });
       } catch (_error) {
-        console.err("Failed image upload.");
+        console.error("Failed image upload.");
+
         processing_image = false;
         return;
       }
@@ -218,7 +228,7 @@ const tryOpenDoor = async () => {
   console.log("Opening door...");
 
   if (door_busy || door_open) {
-    console.err("Door already busy or open.");
+    console.error("Door already busy or open.");
     return;
   }
 
@@ -257,7 +267,7 @@ const closeDoor = async () => {
   console.log("Closing door...");
 
   if (door_busy || !door_open) {
-    console.err("Door already busy or closed.");
+    console.error("Door already busy or closed.");
     return;
   }
 
@@ -295,15 +305,15 @@ const sendPicToCloud = async () => {
   processing_image = true;
   await myCamera
     .snap()
-    .then(async (result) => {
+    .then(async (_result) => {
       console.log("Taken!");
     })
     .catch((error) => {
-      console.err("ERROR: Camera", error);
+      console.error("ERROR: Camera", error);
     });
   // Successfully taken, carry on to sending picture
   sendPicture().catch((error) => {
-    console.err("ERROR: OpenALPR", error);
+    console.error("ERROR: OpenALPR", error);
   });
 };
 
