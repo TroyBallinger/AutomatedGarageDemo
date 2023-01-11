@@ -27,7 +27,7 @@
   "dependencies": {
     "axios": "^0.24.0",
     "dotenv": "^10.0.0",
-    "firebase-admin": "^10.0.1",
+    "firebase-admin": "^10.3.0",
     "fs": "0.0.1-security",
     "onoff": "^6.0.1",
     "pi-camera": "^1.5.0",
