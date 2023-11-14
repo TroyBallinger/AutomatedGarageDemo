@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/TroyBallinger/LicensePlateServer#readme",
   "dependencies": {
-    "axios": "^0.24.0",
+    "axios": "^1.6.1",
     "dotenv": "^10.0.0",
     "firebase-admin": "^11.4.1",
     "fs": "0.0.1-security",
